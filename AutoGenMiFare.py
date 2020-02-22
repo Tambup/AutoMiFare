@@ -11,11 +11,12 @@ def main():
     argParser=argparse.ArgumentParser(description=desc+desc2)
     argGroup=argParser.add_argument_group(title="Command list")
     argGroup.add_argument("-u", "--uid", dest="uid", required=True, nargs=1, help="The UID of the new MiFare card")    
-    argGroup.add_argument("-d", "--dump", dest="dump", nargs=1, required=True, help="The complete correct dump file of the MiFare card")    
+    argGroup.add_argument("-d", "--dump", dest="dump", nargs=1, required=True, help="The complete correct dump.bin file of the MiFare card")    
 
 
     args=argParser.parse_args()
-
+    #with open(args.dump[0]) as dump:
+    #    print(dump.read())
 
 if __name__ == "__main__":
     main()
