@@ -3,7 +3,8 @@
 # Authors: Iordache, Rovetta, Tambu
 
 import argparse
-
+import chamlog
+import chamtool
 
 def main():
     desc="A program to automatize the charge of the dump.bin into the Chameleon, change of UID and than the elaboration of the log resulting from a failed challange-response."
