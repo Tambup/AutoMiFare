@@ -6,48 +6,33 @@ import argparse
 import chamtool
 import Chameleon
 import struct
-import ctypes
 import os
-
-# def prng_successor(x):
-#     nt0 = bytearray.fromhex(x)
-#     nt0 = int.from_bytes(nt0, "little")
-#     n = 64
-#     while n != 0:
-#         n -= 1
-#         nt0 = ctypes.c_uint32(nt0 >> 1).value | ctypes.c_uint32((ctypes.c_uint32(nt0 >> 16).value ^ ctypes.c_uint32(nt0 >> 18).value ^ ctypes.c_uint32(nt0 >> 19).value ^ ctypes.c_uint32(nt0 >> 21).value) << 31).value
-
-#     return int.from_bytes(nt0.to_bytes(4, "little"), "big")
-
-# def keyCalculator(chal_resp0, chal_resp1):
-#     nt0 = chal_resp0.get("nt")
-#     nt1 = chal_resp1.get("nt")
-#     p64 = prng_successor(nt0)
-#     p64b = hex(prng_successor(nt1))
-
-#     z= int(chal_resp0.get("ar"), 16)
-#     ks2 = z ^ p64
-
-#     print()
-
 
 def chameleonCommunication(dump, uid):
     logFile = "temp.bin"
     chameleon = Chameleon.Device()
-    print(Chameleon.Device.listDevices())
-    port = input("Insert device port: ")
-    chameleon.connect(port)
-
-    chamtool.cmdUpload(chameleon, dump)
-    chamtool.cmdUID(chameleon, uid)
+    connected = False
+    while not connected:
+        print(Chameleon.Device.listDevices())
+        port = input("Insert device port: ")
+        connected = chameleon.connect(port)
+        if not connected:
+            print ("Connection failed!")
+    
+    print(chamtool.cmdUpload(chameleon, dump))
+    print(chamtool.cmdUID(chameleon, uid))
     chameleon.cmdClearLog()
-    chamtool.cmdLogMode(chameleon, "MEMORY")
+    print(chamtool.cmdLogMode(chameleon, "MEMORY"))
     chameleon.disconnect()
     input("Go and sniff...\nPress enter when chameleon is reconnected")
+    connected = False
+    while not connected:
+        print(Chameleon.Device.listDevices())
+        port = input("Insert device port: ")
+        connected = chameleon.connect(port)
+        if not connected:
+            print ("Connection failed!")
 
-    print(Chameleon.Device.listDevices())
-    port = input("Insert device port: ")
-    chameleon.connect(port)
     print(chamtool.cmdLog(chameleon, logFile))
     chameleon.disconnect()
     return logFile
@@ -91,10 +76,9 @@ def challangeResponseDetector(binaryStream):
             if counter >= 2:
                 return challangeResponses
 
-
 def main():
     desc="A program to automatize the charge of the dump.bin into the Chameleon, change of UID and than the elaboration of the log resulting from a failed challange-response."
-    desc2=" It is important that chamtool.py, the 'Chameleon' directory and 'EM4233_010Editor_Template.bt' are located in the same directory of this file."
+    desc2=" It is important that chamtool.py and the 'Chameleon' directory are located in the same directory of this file."
     argParser=argparse.ArgumentParser(description=desc+desc2)
     argGroup=argParser.add_argument_group(title="Command list")
     argGroup.add_argument("-u", "--uid", dest="uid", required=True, nargs=1, help="The UID of the new MiFare card")    
@@ -110,8 +94,6 @@ def main():
             if binaryChallangeResponses is not None:
                 if len(binaryChallangeResponses) >= 2:
                     print(binaryChallangeResponses)
-                    # Calculating the key
-                    # keyCalculator(binaryChallangeResponses[0], binaryChallangeResponses[1])
                 elif len(binaryChallangeResponses) < 2:
                     print("Log containg only one challange-response")
             else:
