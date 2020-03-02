@@ -7,11 +7,13 @@ import chamtool
 import Chameleon
 import struct
 import os
+import sys
 
-def chameleonCommunication(dump, uid):
+def chameleonCommunication(response, dump = None, uid = None):
     logFile = "temp.bin"
     chameleon = Chameleon.Device()
     connected = False
+    
     while not connected:
         print(Chameleon.Device.listDevices())
         port = input("Insert device port: ")
@@ -19,21 +21,15 @@ def chameleonCommunication(dump, uid):
         if not connected:
             print ("Connection failed!")
     
-    print(chamtool.cmdUpload(chameleon, dump))
-    print(chamtool.cmdUID(chameleon, uid))
-    chameleon.cmdClearLog()
-    print(chamtool.cmdLogMode(chameleon, "MEMORY"))
-    chameleon.disconnect()
-    input("Go and sniff...\nPress enter when chameleon is reconnected")
-    connected = False
-    while not connected:
-        print(Chameleon.Device.listDevices())
-        port = input("Insert device port: ")
-        connected = chameleon.connect(port)
-        if not connected:
-            print ("Connection failed!")
-
-    print(chamtool.cmdLog(chameleon, logFile))
+    if response == "1":
+        chameleon.cmdClearLog()
+        print(chamtool.cmdUpload(chameleon, dump))
+        print(chamtool.cmdUID(chameleon, uid))
+        print(chamtool.cmdRedLED(chameleon, "CODEC_RX"))
+        print(chamtool.cmdLogMode(chameleon, "MEMORY"))
+    elif response == "0":
+        print(chamtool.cmdLog(chameleon, logFile))
+        
     chameleon.disconnect()
     return logFile
 
@@ -81,25 +77,35 @@ def main():
     desc2=" It is important that chamtool.py and the 'Chameleon' directory are located in the same directory of this file."
     argParser=argparse.ArgumentParser(description=desc+desc2)
     argGroup=argParser.add_argument_group(title="Command list")
-    argGroup.add_argument("-u", "--uid", dest="uid", required=True, nargs=1, help="The UID of the new MiFare card")    
-    argGroup.add_argument("-d", "--dump", dest="dump", required=True, nargs=1, help="The complete correct dump.bin file of the MiFare card")    
+    argGroup.add_argument("-t", "--type", dest="type", required=True, nargs=1, help="To Configure the chameleon(0) otherwise to read the log(1)")
+    argGroup.add_argument("-u", "--uid", dest="uid", nargs=1, help="The UID of the new MiFare card; mandatory with -t 1")    
+    argGroup.add_argument("-d", "--dump", dest="dump", nargs=1, help="The complete correct dump.bin file of the MiFare card; mandatory with -t 1")    
 
     args=argParser.parse_args()
     
-    fileName = chameleonCommunication(args.dump[0], args.uid)
-    if os.stat(fileName).st_size > 100:
-        with open(fileName, "rb") as logFile:
-            binaryChallangeResponses = challangeResponseDetector(logFile)
+    if args.type[0] == "0":
+        fileName = chameleonCommunication(args.type[0])
+    elif args.type[0] == "1":
+        fileName = chameleonCommunication(args.type[0], args.dump[0], args.uid)
+    try:
+        if os.stat(fileName).st_size > 100 and args.type == "0":
+            with open(fileName, "rb") as logFile:
+                binaryChallangeResponses = challangeResponseDetector(logFile)
+                os.remove(fileName)
+                if binaryChallangeResponses is not None:
+                    if len(binaryChallangeResponses) >= 2:
+                        print(binaryChallangeResponses)
+                    elif len(binaryChallangeResponses) < 2:
+                        print("Log containg only one challange-response")
+                else:
+                    print("Log not containing challange-responses")
+        else:
             os.remove(fileName)
-            if binaryChallangeResponses is not None:
-                if len(binaryChallangeResponses) >= 2:
-                    print(binaryChallangeResponses)
-                elif len(binaryChallangeResponses) < 2:
-                    print("Log containg only one challange-response")
-            else:
-                print("Log not containing challange-responses")
-    else:
-        os.remove(fileName)
+    except FileNotFoundError:
+        if args.type[0] == "1":
+            sys.exit()
+        else:
+            sys.exit("Error")
     
 
 if __name__ == "__main__":
