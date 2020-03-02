@@ -21,13 +21,13 @@ def chameleonCommunication(response, dump = None, uid = None):
         if not connected:
             print ("Connection failed!")
     
-    if response == "1":
+    if response == "0":
         chameleon.cmdClearLog()
         print(chamtool.cmdUpload(chameleon, dump))
         print(chamtool.cmdUID(chameleon, uid))
         print(chamtool.cmdRedLED(chameleon, "CODEC_RX"))
         print(chamtool.cmdLogMode(chameleon, "MEMORY"))
-    elif response == "0":
+    elif response == "1":
         print(chamtool.cmdLog(chameleon, logFile))
         
     chameleon.disconnect()
@@ -83,12 +83,12 @@ def main():
 
     args=argParser.parse_args()
     
-    if args.type[0] == "0":
+    if args.type[0] == "1":
         fileName = chameleonCommunication(args.type[0])
-    elif args.type[0] == "1":
+    elif args.type[0] == "0":
         fileName = chameleonCommunication(args.type[0], args.dump[0], args.uid)
     try:
-        if os.stat(fileName).st_size > 100 and args.type == "0":
+        if os.stat(fileName).st_size > 100 and args.type == "1":
             with open(fileName, "rb") as logFile:
                 binaryChallangeResponses = challangeResponseDetector(logFile)
                 os.remove(fileName)
@@ -102,7 +102,7 @@ def main():
         else:
             os.remove(fileName)
     except FileNotFoundError:
-        if args.type[0] == "1":
+        if args.type[0] == "0":
             sys.exit()
         else:
             sys.exit("Error")
