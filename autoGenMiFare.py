@@ -88,7 +88,7 @@ def main():
     elif args.type[0] == "0":
         fileName = chameleonCommunication(args.type[0], args.dump[0], args.uid)
     try:
-        if os.stat(fileName).st_size > 100 and args.type == "1":
+        if os.stat(fileName).st_size > 100 and args.type[0] == "1":
             with open(fileName, "rb") as logFile:
                 binaryChallangeResponses = challangeResponseDetector(logFile)
                 os.remove(fileName)
